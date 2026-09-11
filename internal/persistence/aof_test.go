@@ -58,10 +58,7 @@ func TestAOF_LoadMissingFileIsNotAnError(t *testing.T) {
 }
 
 func TestAOF_ArgsWithSpacesAndSpecialChars(t *testing.T) {
-	// RESP bulk strings are length-prefixed, so values containing spaces,
-	// newlines, or anything else should round-trip byte-for-byte — this is
-	// exactly the property that makes RESP simpler to log than a naive
-	// space-separated text format would be.
+	// RESP bulk strings are length-prefixed, so values containing spaces, newlines, or other special characters should round-trip byte-for-byte.
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.aof")
 	aof, err := Open(path)
