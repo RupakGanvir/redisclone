@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", ":6380", "address to listen on")
+	addr := flag.String("addr", ":6379", "address to listen on")
 	aofPath := flag.String("aof", "redisclone.aof", "path to the append-only file (empty string disables persistence)")
 	flag.Parse()
 
