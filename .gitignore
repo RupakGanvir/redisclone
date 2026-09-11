@@ -1,0 +1,18 @@
+# Build artifacts
+bin/
+
+# RedisClone runtime persistence
+*.aof
+data
+
+# Go test/build artifacts
+*.test
+*.out
+
+# IDE / editor files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
