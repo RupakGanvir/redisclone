@@ -1,6 +1,4 @@
-// Package server ties the RESP protocol layer and the store together: it
-// accepts TCP connections, reads commands off each one, dispatches them to
-// handlers, and writes replies back.
+// Package server connects the RESP protocol layer with the store, handling TCP connections, command dispatch, and responses.
 package server
 
 import (
@@ -16,8 +14,7 @@ import (
 	"redisclone/internal/store"
 )
 
-// Server owns the shared state every connection needs: the keyspace, the
-// AOF log (nil if persistence is disabled), and pub/sub subscriber lists.
+// Server owns the shared state every connection needs: the keyspace, the AOF log, and pub/sub subscriber lists.
 type Server struct {
 	Store *store.Store
 	aof   *persistence.AOF
@@ -36,11 +33,7 @@ func New(st *store.Store, aof *persistence.AOF) *Server {
 	}
 }
 
-// clientConn wraps one accepted connection. writeMu serializes writes to
-// the socket: a client's own command loop writes replies, but *other*
-// goroutines can also write to this same connection when delivering
-// PUBLISH messages after this client has SUBSCRIBEd — writeMu is what
-// keeps those two writers from interleaving mid-message.
+// clientConn wraps an accepted connection. writeMu serializes socket writes from command replies and Pub/Sub messages.
 type clientConn struct {
 	id      uint64
 	conn    net.Conn
@@ -57,8 +50,7 @@ func (c *clientConn) subscribedCount() int {
 	return len(c.channels)
 }
 
-// ListenAndServe binds addr and serves connections until the listener
-// errors (e.g. on shutdown).
+// ListenAndServe binds addr and serves connections until the listener errors (e.g. on shutdown).
 func (s *Server) ListenAndServe(addr string) error {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -102,9 +94,8 @@ func (s *Server) handleConn(netConn net.Conn) {
 	}
 }
 
-// dispatch looks up the handler for args[0] and runs it. On success, if the
-// command is a write command, it's appended to the AOF so it can be
-// replayed on the next startup.
+// dispatch runs the handler for the given command and appends successful
+// write commands to the AOF.
 func (s *Server) dispatch(c *clientConn, args []string) {
 	name := strings.ToUpper(args[0])
 	h, ok := commandTable[name]
@@ -123,9 +114,7 @@ func (s *Server) dispatch(c *clientConn, args []string) {
 	}
 }
 
-// --- write helpers (all take the writeMu lock, so they're safe to call
-// from any goroutine, including PUBLISH delivery from a different
-// connection's command loop) ---
+// write helpers; all serialize access through writeMu
 
 func (c *clientConn) replySimpleString(s string) {
 	c.writeMu.Lock()
@@ -163,8 +152,7 @@ func (c *clientConn) replyStringArray(items []string) {
 	c.w.WriteStringArray(items)
 }
 
-// replyFlatPairs writes a map as a flat array [k1, v1, k2, v2, ...], the
-// shape Redis uses for HGETALL.
+// replyFlatPairs writes a map as a flat array [k1, v1, k2, v2, etc], the shape Redis uses for HGETALL.
 func (c *clientConn) replyFlatPairs(m map[string]string) {
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
@@ -178,10 +166,7 @@ func (c *clientConn) replyFlatPairs(m map[string]string) {
 
 func errString(err error) string {
 	msg := err.Error()
-	// Redis error replies conventionally start with an all-caps error
-	// code word (ERR, WRONGTYPE, ...); our store errors already follow
-	// that convention (see store.ErrWrongType), everything else gets a
-	// generic ERR prefix.
+	// Preserve Redis error codes; prefix other errors with ERR
 	if strings.HasPrefix(msg, "WRONGTYPE") {
 		return msg
 	}

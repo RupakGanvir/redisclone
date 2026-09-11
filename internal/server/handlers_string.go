@@ -25,11 +25,7 @@ func cmdGet(s *Server, c *clientConn, args []string) error {
 	return nil
 }
 
-// cmdSet handles SET key value [EX seconds | PX ms] [NX | XX]. This is a
-// good example of a command whose *parsing* is more involved than its
-// actual effect — real Redis's SET has grown many more modifiers over the
-// years (KEEPTTL, GET, EXAT...), which is worth knowing exists even though
-// we only implement the common subset here.
+// cmdSet handles SET key value with optional EX, PX, NX, or XX modifiers.
 func cmdSet(s *Server, c *clientConn, args []string) error {
 	if len(args) < 3 {
 		return fmt.Errorf("wrong number of arguments for 'set' command")

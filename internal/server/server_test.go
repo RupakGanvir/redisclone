@@ -11,20 +11,18 @@ import (
 	"redisclone/internal/store"
 )
 
-// testClient is a minimal RESP client used only by these tests, so we
-// exercise the server exactly as a real client (redis-cli, ioredis, ...)
-// would: over a real TCP socket, using the same wire protocol both ways.
+// testClient is a minimal RESP client used to test the server over TCP.
 type testClient struct {
 	conn net.Conn
 	br   *bufio.Reader
-	r    *resp.Reader // for parsing array-framed replies (LRANGE, SUBSCRIBE, etc.)
+	r    *resp.Reader // for parsing array-framed replies (LRANGE, SUBSCRIBE, etc)
 	w    *resp.Writer
 }
 
 func newTestServer(t *testing.T) (addr string, srv *Server) {
 	st := store.New()
 	t.Cleanup(st.Close)
-	srv = New(st, nil) // no AOF here — persistence has its own test in internal/persistence
+	srv = New(st, nil) // no AOF here - persistence has its own test in internal/persistence
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -59,8 +57,7 @@ func dialTestClient(t *testing.T, addr string) *testClient {
 	}
 }
 
-// send encodes args the way every real client library does: an array of
-// bulk strings.
+// send encodes args the way every real client library does: an array of bulk strings.
 func (tc *testClient) send(args ...string) {
 	tc.w.WriteArrayHeader(len(args))
 	for _, a := range args {
@@ -69,8 +66,7 @@ func (tc *testClient) send(args ...string) {
 	tc.w.Flush()
 }
 
-// readLine reads one raw protocol line (for +simple/-error/:integer/$bulk
-// replies, which aren't array-framed and so can't go through resp.Reader).
+// readLine reads one raw protocol line (for +simple/-error/:integer/$bulk replies, which aren't array-framed and so can't go through resp.Reader).
 func (tc *testClient) readLine(t *testing.T) string {
 	t.Helper()
 	line, err := tc.br.ReadString('\n')
@@ -80,10 +76,7 @@ func (tc *testClient) readLine(t *testing.T) string {
 	return line
 }
 
-// readArray reads an array-framed reply where every element is a bulk
-// string (true for LRANGE/SMEMBERS/HGETALL and pub/sub "message" pushes)
-// by reusing resp.Reader, since that framing is identical to a client
-// command's.
+// readArray reads an array-framed reply using resp.Reader.
 func (tc *testClient) readArray(t *testing.T) []string {
 	t.Helper()
 	args, err := tc.r.ReadCommand()
@@ -93,12 +86,7 @@ func (tc *testClient) readArray(t *testing.T) []string {
 	return args
 }
 
-// readMixedArray reads an array-framed reply whose elements may be *either*
-// bulk strings or integers — e.g. the SUBSCRIBE/UNSUBSCRIBE confirmation,
-// which real Redis encodes as [bulk, bulk, integer]. resp.Reader can't be
-// reused here since it only understands homogeneous bulk-string arrays
-// (the shape every client *command* takes), so this is a small
-// purpose-built parser for the reply side of the protocol.
+// readMixedArray reads an array reply containing bulk strings and integers.
 func (tc *testClient) readMixedArray(t *testing.T) []string {
 	t.Helper()
 	header := tc.readLine(t) // e.g. "*3\r\n"
@@ -166,9 +154,7 @@ func TestIntegration_ListsVisibleAcrossConnections(t *testing.T) {
 	writer.send("RPUSH", "shared", "a", "b")
 	writer.readLine(t) // :2\r\n
 
-	// A second, independent connection should see the same server-side
-	// state immediately — this is exactly what `go test -race` would catch
-	// if the store's locking were broken.
+	// A separate connection should observe the same server-side state.
 	reader.send("LRANGE", "shared", "0", "-1")
 	got := reader.readArray(t)
 	want := []string{"a", "b"}

@@ -37,8 +37,7 @@ func cmdRPop(s *Server, c *clientConn, args []string) error {
 	return popHandler(s, c, args, s.Store.RPop)
 }
 
-// popHandler factors out the shared LPOP/RPOP logic: both take an optional
-// count and reply with either a single bulk string, an array, or nil.
+// popHandler factors out the shared LPOP/RPOP logic: both take an optional count and reply with either a single bulk string, an array, or nil.
 func popHandler(s *Server, c *clientConn, args []string, pop func(string, int) ([]string, bool, error)) error {
 	if len(args) < 2 || len(args) > 3 {
 		return fmt.Errorf("wrong number of arguments")

@@ -2,14 +2,14 @@ package server
 
 // handlerFunc is the signature every command implements. It writes its
 // reply directly to c and returns an error only for protocol-level
-// problems (wrong arity, wrong type, bad integer, ...) — those get turned
+// problems (wrong arity, wrong type, bad integer, etc) - those get turned
 // into a RESP error reply by dispatch().
 type handlerFunc func(s *Server, c *clientConn, args []string) error
 
 type command struct {
 	fn handlerFunc
 	// isWrite marks commands that mutate the keyspace. Only these get
-	// appended to the AOF — logging read commands would just bloat the
+	// appended to the AOF - logging read commands would just bloat the
 	// file with no benefit, since replay only needs to reconstruct state.
 	isWrite bool
 }
