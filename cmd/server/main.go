@@ -23,10 +23,7 @@ func main() {
 
 	var aof *persistence.AOF
 	if *aofPath != "" {
-		// Replay any existing log BEFORE opening it for appending, and
-		// BEFORE constructing the Server — replay applies commands
-		// directly against the store, bypassing the network/dispatch
-		// layer entirely (there's no client connection during startup).
+		// Replay the existing AOF before accepting client connections.
 		if err := replayAOF(*aofPath, st); err != nil {
 			log.Fatalf("failed to replay AOF: %v", err)
 		}
@@ -47,11 +44,7 @@ func main() {
 	}
 }
 
-// replayAOF re-executes every logged write command directly against the
-// store using the small in-process applier below, rather than going
-// through server.Server — at startup there's no client connection to
-// reply to, so we only need the *effect* of each command, not its RESP
-// reply.
+// Replay persisted commands directly against the store during startup.
 func replayAOF(path string, st *store.Store) error {
 	count := 0
 	err := persistence.Load(path, func(args []string) error {
@@ -64,12 +57,7 @@ func replayAOF(path string, st *store.Store) error {
 	return err
 }
 
-// applyToStore is a minimal command applier used only during AOF replay.
-// It deliberately duplicates a small slice of the logic in
-// internal/server's handlers rather than importing that package, to keep
-// replay decoupled from the network/reply layer. In a larger project this
-// shared logic would be factored into a common "engine" package that both
-// the live dispatcher and the replay path call into.
+// applyToStore applies persisted commands directly to the store. It is kept separate from the network command handlers.
 func applyToStore(st *store.Store, args []string) error {
 	if len(args) == 0 {
 		return nil
@@ -150,10 +138,7 @@ func applyToStore(st *store.Store, args []string) error {
 	case "FLUSHALL":
 		st.FlushAll()
 	case "EXPIRE", "PERSIST":
-		// Known limitation: see the "AOF and relative expiry" section of
-		// GUIDE.md. We intentionally skip replaying these rather than
-		// silently mis-restoring a TTL relative to the wrong point in
-		// time.
+		// Relative expiry commands are skipped during AOF replay because their original TTL cannot be reconstructed safely after a restart.
 	}
 	return nil
 }
