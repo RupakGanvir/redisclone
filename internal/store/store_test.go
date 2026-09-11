@@ -199,8 +199,7 @@ func TestGlobMatch(t *testing.T) {
 	}
 }
 
-// TestConcurrentAccess exercises the store with many goroutines hammering
-// the same keys, run with `go test -race` to catch any data races.
+// TestConcurrentAccess exercises the store with many goroutines hammering the same keys, run with `go test -race` to catch any data races.
 func TestConcurrentAccess(t *testing.T) {
 	s := newTestStore(t)
 	var wg sync.WaitGroup

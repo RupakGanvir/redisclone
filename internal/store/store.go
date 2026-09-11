@@ -1,21 +1,5 @@
-// Package store implements the in-memory data structures behind the server:
-// strings, lists, hashes, and sets, all with optional TTL-based expiry.
-//
-// Concurrency model: this is the single biggest design decision in the
-// whole project, so it's worth stating explicitly. Real Redis is
-// single-threaded — one event loop handles every client, so there's never a
-// data race and never a need for locks. That's *fast* precisely because it
-// avoids lock contention, but it means one slow command (e.g. KEYS * on a
-// huge dataset) blocks every other client.
-//
-// This clone instead uses Go's natural concurrency model: one goroutine per
-// client connection, with a single sync.RWMutex protecting the whole
-// keyspace. That's simpler to reason about than fine-grained locking and
-// still lets many clients read concurrently, but every write is fully
-// serialized behind one mutex. A natural extension (see the guide) is to
-// shard the keyspace across N mutex-protected maps, keyed by hash(key) % N,
-// to reduce write contention — a middle ground between "one big lock" and
-// "no locks at all".
+// Package store implements the in-memory data structures used by the server,
+// including strings, lists, hashes, sets, and TTL-based expiry.
 package store
 
 import (
@@ -23,8 +7,7 @@ import (
 	"time"
 )
 
-// ValueType identifies what kind of value is stored under a key, mirroring
-// Redis's own TYPE command.
+// ValueType identifies what kind of value is stored under a key, mirroring Redis's own type system.
 type ValueType int
 
 const (
@@ -49,8 +32,7 @@ func (t ValueType) String() string {
 	}
 }
 
-// entry is what's actually stored per key: the value itself (in exactly one
-// of the fields below, based on typ) plus an optional absolute expiry time.
+// entry is what's actually stored per key: the value itself (in exactly one of the fields below, based on typ) plus an optional absolute expiry time.
 type entry struct {
 	typ       ValueType
 	str       string
@@ -73,8 +55,7 @@ type Store struct {
 	mu   sync.RWMutex
 	data map[string]*entry
 
-	// stopSweep terminates the background active-expiry goroutine started
-	// by New(). Tests and short-lived callers should call Close().
+	// stopSweep terminates the background active-expiry goroutine started by New(). Tests and short-lived callers should call Close().
 	stopSweep chan struct{}
 }
 
@@ -91,10 +72,7 @@ func (s *Store) Close() {
 	close(s.stopSweep)
 }
 
-// activeExpiryLoop periodically scans for expired keys and removes them,
-// so that keys nobody ever touches again still eventually free their
-// memory. This mirrors Redis's own "active expire cycle". Passive expiry
-// (checking a key's TTL when it's accessed) happens separately in get().
+// activeExpiryLoop periodically removes expired keys that are not accessed.
 func (s *Store) activeExpiryLoop() {
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
@@ -119,10 +97,7 @@ func (s *Store) sweepExpired() {
 	}
 }
 
-// getLocked fetches an entry, applying passive expiry. Caller must hold the
-// lock (read or write — for deleting an expired key we need a write lock,
-// so we upgrade if necessary). Returns nil if the key doesn't exist or has
-// expired.
+// getLocked fetches an entry and applies passive expiry. Caller must hold the appropriate lock.
 func (s *Store) getLocked(key string) *entry {
 	e, ok := s.data[key]
 	if !ok {
@@ -135,8 +110,7 @@ func (s *Store) getLocked(key string) *entry {
 	return e
 }
 
-// Get performs passive-expiry-aware lookup for read commands that need the
-// raw entry (used internally by the command handlers in internal/server).
+// Get performs passive-expiry-aware lookup for read commands that need the raw entry (used internally by the command handlers in internal/server).
 func (s *Store) get(key string) *entry {
 	s.mu.Lock() // write lock: getLocked may delete an expired key
 	defer s.mu.Unlock()
@@ -221,8 +195,7 @@ func (s *Store) DBSize() int {
 
 // --- Expiry commands ---
 
-// Expire sets a TTL (relative, in seconds) on a key. Returns false if the
-// key doesn't exist.
+// Expire sets a TTL (relative, in seconds) on a key. Returns false if the key doesn't exist.
 func (s *Store) Expire(key string, ttl time.Duration) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -234,8 +207,7 @@ func (s *Store) Expire(key string, ttl time.Duration) bool {
 	return true
 }
 
-// Persist removes a key's TTL, making it live forever. Returns false if the
-// key doesn't exist or had no TTL to begin with.
+// Persist removes a key's TTL, making it live forever. Returns false if the key doesn't exist or had no TTL to begin with.
 func (s *Store) Persist(key string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -247,8 +219,7 @@ func (s *Store) Persist(key string) bool {
 	return true
 }
 
-// TTL returns remaining seconds, or -1 if the key exists but has no expiry,
-// or -2 if the key doesn't exist.
+// TTL returns remaining seconds, or -1 if the key exists but has no expiry, or -2 if the key doesn't exist.
 func (s *Store) TTL(key string) int64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()

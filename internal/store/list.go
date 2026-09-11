@@ -1,7 +1,6 @@
 package store
 
-// getOrCreateList fetches the list at key, creating an empty one if it
-// doesn't exist. Caller must hold s.mu (write lock).
+// getOrCreateList fetches the list at key, creating an empty one if it doesn't exist.
 func (s *Store) getOrCreateList(key string) (*entry, error) {
 	e := s.getLocked(key)
 	if e == nil {
@@ -15,10 +14,7 @@ func (s *Store) getOrCreateList(key string) (*entry, error) {
 	return e, nil
 }
 
-// LPush prepends values (in the order given) to the list at key and
-// returns the new length. Matches Redis semantics: `LPUSH k a b` results
-// in the list [b, a, ...existing], because each element is pushed
-// individually onto the head.
+// LPush prepends values (in the order given) to the list at key and returns the new length. If the key doesn't exist, it creates a new list.
 func (s *Store) LPush(key string, values ...string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -43,8 +39,7 @@ func (s *Store) RPush(key string, values ...string) (int, error) {
 	return len(e.list), nil
 }
 
-// LPop removes and returns up to count elements from the head. ok is false
-// if the key doesn't exist (caller should reply nil).
+// LPop removes and returns up to count elements from the head. ok is false if the key doesn't exist.
 func (s *Store) LPop(key string, count int) ([]string, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -92,8 +87,7 @@ func (s *Store) RPop(key string, count int) ([]string, bool, error) {
 	return popped, true, nil
 }
 
-// LRange returns elements from start to stop inclusive, supporting Redis's
-// negative-index convention (-1 = last element).
+// LRange returns elements from start to stop inclusive, supporting Redis's negative-index convention.
 func (s *Store) LRange(key string, start, stop int) ([]string, error) {
 	e := s.get(key)
 	if e == nil {
@@ -130,8 +124,7 @@ func (s *Store) LLen(key string) (int, error) {
 	return len(e.list), nil
 }
 
-// normalizeIndex converts a possibly-negative Redis-style index into a
-// zero-based positive index (-1 -> n-1, -2 -> n-2, etc).
+// normalizeIndex converts a possibly-negative Redis-style index into a zero-based positive index
 func normalizeIndex(i, n int) int {
 	if i < 0 {
 		i = n + i

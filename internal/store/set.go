@@ -13,8 +13,7 @@ func (s *Store) getOrCreateSet(key string) (*entry, error) {
 	return e, nil
 }
 
-// SAdd adds members and returns how many were newly added (Redis sets are
-// deduplicated, so re-adding an existing member is a no-op).
+// SAdd adds members and returns how many were newly added.
 func (s *Store) SAdd(key string, members ...string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

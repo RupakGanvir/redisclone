@@ -13,8 +13,7 @@ func (s *Store) getOrCreateHash(key string) (*entry, error) {
 	return e, nil
 }
 
-// HSet sets one or more field/value pairs and returns how many fields were
-// newly created (as opposed to overwritten).
+// HSet sets one or more field/value pairs and returns how many fields were newly created.
 func (s *Store) HSet(key string, pairs map[string]string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

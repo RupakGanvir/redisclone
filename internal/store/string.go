@@ -6,17 +6,14 @@ import (
 	"time"
 )
 
-// ErrWrongType mirrors Redis's WRONGTYPE error: you tried to run a
-// string/list/hash/set command against a key holding a different type.
+// ErrWrongType mirrors Redis's WRONGTYPE error: you tried to run a string/list/hash/set command against a key holding a different type.
 type ErrWrongType struct{}
 
 func (ErrWrongType) Error() string {
 	return "WRONGTYPE Operation against a key holding the wrong kind of value"
 }
 
-// SetOpts captures the optional modifiers SET supports (EX/PX/NX/XX), kept
-// as a struct so the command handler can build it straight from parsed
-// arguments without a long positional parameter list.
+// SetOpts contains the optional modifiers supported by SET.
 type SetOpts struct {
 	TTL      time.Duration // zero = no expiry
 	HasTTL   bool
@@ -24,9 +21,7 @@ type SetOpts struct {
 	OnlyIfXX bool // XX: only set if key already exists
 }
 
-// Set stores a string value, applying SetOpts. Returns false if an NX/XX
-// condition prevented the write (caller should reply with a nil bulk
-// string in that case, matching real Redis).
+// Set stores a string value with the given options. Returns false if an NX/XX condition prevents the write.
 func (s *Store) Set(key, value string, opts SetOpts) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -47,8 +42,7 @@ func (s *Store) Set(key, value string, opts SetOpts) bool {
 	return true
 }
 
-// Get returns the string value and whether the key exists (as a live
-// string). Returns ErrWrongType if the key holds a non-string value.
+// Get returns the string value and whether the key exists (as a live string). Returns ErrWrongType if the key holds a non-string value.
 func (s *Store) GetString(key string) (string, bool, error) {
 	e := s.get(key)
 	if e == nil {
@@ -60,9 +54,7 @@ func (s *Store) GetString(key string) (string, bool, error) {
 	return e.str, true, nil
 }
 
-// Incr adds delta to the integer value at key (creating it as "0" first if
-// missing) and returns the new value. Returns an error if the existing
-// value isn't a valid base-10 integer, or is the wrong type.
+// Incr adds delta to the integer value at key, creating it if missing. Returns the new value or an error for invalid integers or wrong types.
 func (s *Store) IncrBy(key string, delta int64) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -84,8 +76,7 @@ func (s *Store) IncrBy(key string, delta int64) (int64, error) {
 	return cur, nil
 }
 
-// Append adds a suffix to the string at key (creating it if missing) and
-// returns the new length.
+// Append adds a suffix to the string at key (creating it if missing) andreturns the new length.
 func (s *Store) Append(key, suffix string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
