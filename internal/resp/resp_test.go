@@ -34,7 +34,6 @@ func TestReadCommand_Inline(t *testing.T) {
 }
 
 func TestReadCommand_NullBulk(t *testing.T) {
-	// *2\r\n$3\r\nGET\r\n$-1\r\n -> ["GET", ""]
 	input := "*2\r\n$3\r\nGET\r\n$-1\r\n"
 	r := NewReader(bufio.NewReader(bytes.NewBufferString(input)))
 	args, err := r.ReadCommand()
@@ -84,8 +83,7 @@ func TestWriteRoundtrip(t *testing.T) {
 }
 
 func TestReadCommand_MultipleSequential(t *testing.T) {
-	// Two commands back to back on the same stream, as a real connection
-	// would send them (pipelining).
+	// Two commands back to back on the same stream, as a real connection would send them (pipelining).
 	input := "*1\r\n$4\r\nPING\r\n*1\r\n$4\r\nPING\r\n"
 	r := NewReader(bufio.NewReader(bytes.NewBufferString(input)))
 	for i := 0; i < 2; i++ {
